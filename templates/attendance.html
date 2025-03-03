@@ -1,0 +1,87 @@
+{% extends "layout.html" %}
+
+{% block title %}Attendance - Attendance System{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Mark Attendance</h2>
+
+<div class="card shadow mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('attendance') }}">
+            <div class="row g-3 align-items-center mb-3">
+                <div class="col-auto">
+                    <label for="date" class="col-form-label">Select Date:</label>
+                </div>
+                <div class="col-auto">
+                    <input type="date" class="form-control" id="date" name="date" value="{{ selected_date.strftime('%Y-%m-%d') }}">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary">View</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<form method="POST" action="{{ url_for('mark_attendance') }}">
+    <input type="hidden" name="date" value="{{ selected_date.strftime('%Y-%m-%d') }}">
+    
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Attendance for {{ selected_date.strftime('%d %B, %Y') }}</h5>
+            <button type="submit" class="btn btn-light">Save Attendance</button>
+        </div>
+        <div class="card-body">
+            {% if students %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Roll Number</th>
+                            <th>Status</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td>{{ student.name }}</td>
+                            <td>{{ student.roll_number }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <input type="radio" class="btn-check" name="status_{{ student.id }}" id="present_{{ student.id }}" value="Present" 
+                                        {% if student.id in attendance_records and attendance_records[student.id].status == 'Present' %}checked{% endif %}>
+                                    <label class="btn btn-outline-success" for="present_{{ student.id }}">Present</label>
+                                    
+                                    <input type="radio" class="btn-check" name="status_{{ student.id }}" id="absent_{{ student.id }}" value="Absent" 
+                                        {% if student.id in attendance_records and attendance_records[student.id].status == 'Absent' %}checked{% endif %}>
+                                    <label class="btn btn-outline-danger" for="absent_{{ student.id }}">Absent</label>
+                                    
+                                    <input type="radio" class="btn-check" name="status_{{ student.id }}" id="late_{{ student.id }}" value="Late" 
+                                        {% if student.id in attendance_records and attendance_records[student.id].status == 'Late' %}checked{% endif %}>
+                                    <label class="btn btn-outline-warning" for="late_{{ student.id }}">Late</label>
+                                </div>
+                            </td>
+                            <td>
+                                <input type="text" class="form-control" name="remark_{{ student.id }}" 
+                                    value="{{ attendance_records[student.id].remark if student.id in attendance_records else '' }}" 
+                                    placeholder="Add remarks...">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+                <button type="submit" class="btn btn-primary">Save Attendance</button>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <p>No students found. Please add students to your class.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Report | Teacher's Attendance System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'navbar.html' %}
+    
+    <div class="container mt-4">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">Student Attendance Report</h3>
+                <a href="{{ url_for('students') }}" class="btn btn-light btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Students
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h4 class="card-title">{{ student.name }}</h4>
+                                <p class="card-text"><strong>Roll Number:</strong> {{ student.roll_number }}</p>
+                                <p class="card-text"><strong>Email:</strong> {{ student.email }}</p>
+                                <h5 class="mt-4">Attendance Summary</h5>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Attendance Rate:</span>
+                                    <span class="badge {% if attendance_percentage >= 90 %}bg-success{% elif attendance_percentage >= 75 %}bg-warning{% else %}bg-danger{% endif %} fs-6">{{ attendance_percentage }}%</span>
+                                </div>
+                                <div class="progress mt-2">
+                                    <div class="progress-bar {% if attendance_percentage >= 90 %}bg-success{% elif attendance_percentage >= 75 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                        role="progressbar" 
+                                        style="width: {{ attendance_percentage }}%" 
+                                        aria-valuenow="{{ attendance_percentage }}" 
+                                        aria-valuemin="0" 
+                                        aria-valuemax="100">
+                                        {{ attendance_percentage }}%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Statistics</h5>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="text-center mb-3">
+                                            <h6>Total Days</h6>
+                                            <span class="badge bg-secondary fs-5">{{ total_records }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-center mb-3">
+                                            <h6>Present</h6>
+                                            <span class="badge bg-success fs-5">{{ present_count }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-center mb-3">
+                                            <h6>Absent</h6>
+                                            <span class="badge bg-danger fs-5">{{ absent_count }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-center mb-3">
+                                            <h6>Late</h6>
+                                            <span class="badge bg-warning fs-5">{{ late_count }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-8">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Monthly Attendance</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="monthlyAttendanceChart" height="250"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Attendance Records</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Status</th>
+                                                <th>Remarks</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for record in records %}
+                                            <tr>
+                                                <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
+                                                <td>
+                                                    <span class="badge {% if record.status == 'Present' %}bg-success{% elif record.status == 'Absent' %}bg-danger{% else %}bg-warning{% endif %}">
+                                                        {{ record.status }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ record.remark or '-' }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% include 'footer.html' %}
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Parse the chart data from server
+        const chartData = {{ chart_data|safe }};
+        
+        // Extract data for the chart
+        const months = chartData.map(item => item.month);
+        const presentData = chartData.map(item => item.present_percent);
+        const absentData = chartData.map(item => item.absent_percent);
+        const lateData = chartData.map(item => item.late_percent);
+        
+        // Create the chart
+        const ctx = document.getElementById('monthlyAttendanceChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: 'Present %',
+                        data: presentData,
+                        backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Absent %',
+                        data: absentData,
+                        backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                        borderColor: 'rgba(220, 53, 69, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Late %',
+                        data: lateData,
+                        backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                        borderColor: 'rgba(255, 193, 7, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Percentage (%)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
